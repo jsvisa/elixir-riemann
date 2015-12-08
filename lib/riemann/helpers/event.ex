@@ -15,10 +15,15 @@ defmodule Riemann.Helpers.Event do
       end
 
       def build(dict) do
-        {:ok, hostname} = :inet.gethostname
-        hostname = :erlang.list_to_binary(hostname)
+        hostname = case Application.get_env(:riemann, :eventhost) do
+                    nil ->
+                      {:ok, hostname} = :inet.gethostname
+                      :erlang.list_to_binary(hostname)
+                    host ->
+                      to_string(host)
+                   end
 
-        dict = Dict.merge([host: hostname, time: :erlang.system_time(:seconds)], dict)
+        dict = Dict.merge([host: hostname, time: system_time], dict)
 
         dict = case Dict.get(dict, :attributes) do
           nil -> dict
@@ -53,6 +58,11 @@ defmodule Riemann.Helpers.Event do
         |> Dict.delete(:metric_f)
         |> Dict.delete(:metric_sint64)
         |> Dict.put(:attributes, attributes)
+      end
+
+      defp system_time do
+        {m, s, _m} = :os.timestamp
+        m * 1000000 + s
       end
 
     end
